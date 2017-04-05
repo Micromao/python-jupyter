@@ -1,0 +1,143 @@
+
+# coding: utf-8
+
+# In[3]:
+
+import requests
+from bs4 import BeautifulSoup
+res = requests.get('http://news.sina.com.cn/c/nd/2017-04-05/doc-ifycwymx3816762.shtml')
+res.encoding ='utf-8'
+#print(res.text)
+soup = BeautifulSoup(res.text,'html.parser')
+
+
+# In[5]:
+
+soup.select('#artibodyTitle')[0].text
+
+
+# In[11]:
+
+timesource = soup.select('.time-source')[0].contents[0].strip()
+
+
+# In[12]:
+
+from datetime import datetime
+dt = datetime.strptime(timesource,'%Y年%m月%d日%H:%M')
+
+
+# In[14]:
+
+dt.strftime('%Y-%m-%d')
+
+
+# In[17]:
+
+soup.select('.time-source span a ')[0].text
+
+
+# In[27]:
+
+article=[]
+for p in soup.select('#artibody p')[:-1]:
+    article.append(p.text.strip())
+print(article)
+
+'@'.join(article)
+
+
+# In[30]:
+
+' '.join([p.text.strip() for p in  soup.select('#artibody p')[:-1]])
+
+
+# In[34]:
+
+soup.select('.article-editor')[0].text.lstrip('责任编辑：')
+
+
+# In[36]:
+
+soup.select('#commentCount1')
+
+
+# In[45]:
+
+import requests
+comments = requests.get('http://comment5.news.sina.com.cn/page/info?version=1&format=js&channel=gn&newsid=comos-fycwymx3816762&group=&compress=0&ie=utf-8&oe=utf-8&page=1&page_size=20')
+
+import json
+jd=json.loads(comments.text.strip('var data='))
+
+
+# In[49]:
+
+jd['result']['count']['total']
+
+
+# In[52]:
+
+newsurl='http://news.sina.com.cn/c/nd/2017-04-05/doc-ifycwymx3816762.shtml'
+newsid= newsurl.split('/')[-1].rstrip('.shtml').lstrip('doc-i')
+newsid
+
+
+# In[57]:
+
+import re
+m = re.search('doc-i(.+).shtml',newsurl)
+#print(m.group(1))
+newsid=m.group(1)
+
+
+# In[59]:
+
+commentURL='http://comment5.news.sina.com.cn/page/info?version=1&format=js&channel=gn&newsid=comos-{}&group=&compress=0&ie=utf-8&oe=utf-8&page=1&page_size=20'
+
+commentURL.format(newsid)
+
+
+# In[60]:
+
+import re
+import json
+
+def getCommentCounts(newsurl):
+    m = re.search('doc-i(.+).shtml',newsurl)
+    newsid=m.group(1)
+    comments = requests.get(commentURL.format(newsid))
+    jd=json.loads(comments.text.strip('var data='))
+    return jd['result']['count']['total']
+
+
+# In[61]:
+
+news='http://news.sina.com.cn/c/nd/2017-04-05/doc-ifycwymx3816762.shtml'
+getCommentCounts(news)
+
+
+# In[62]:
+
+import requests
+from bs4 import BeautifulSoup
+
+def getNewsDetail(newsurl):
+    result = {}
+    res=requests.get(newsurl)
+    res.encoding='utf-8'
+    soup=BeautifulSoup(res.text,'html.parser')
+    result['title'] = soup.select('#artibodyTitle')[0].text
+    result['newssource'] = soup.select('.time-source span a')[0].text
+    timesource = soup.select('.time-source')[0].contents[0].strip()
+    result['dt'] = datetime.strptime(timesource,'%Y年%m月%d日%H:%M')
+    result['article'] = ' '.join([p.text.strip() for p in  soup.select('#artibody p')[:-1]])
+    result['editor'] = soup.select('.article-editor')[0].text.lstrip('责任编辑：')
+    result['comments'] = getCommentCounts(newsurl)
+    return result
+
+
+# In[64]:
+
+getNewsDetail('http://news.sina.com.cn/c/nd/2017-04-05/doc-ifycwymx3816762.shtml')
+
